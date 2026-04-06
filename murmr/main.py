@@ -204,7 +204,7 @@ def _ui(fn):
 
 def do_paste(text):
     pyperclip.copy(text)
-    time.sleep(0.15)
+    time.sleep(0.15)  # let the target window regain focus after the hotkey is released
     _keyboard.press(Key.ctrl)
     _keyboard.press('v')
     _keyboard.release('v')
@@ -248,6 +248,10 @@ def _transcription_worker():
 
 def _toggle_recording():
     global _is_recording
+
+    if _transcriber is None:
+        logging.warning("Hotkey pressed but model is still loading — ignoring.")
+        return
 
     if not _is_recording:
         _is_recording = True

@@ -2,3 +2,4 @@
 murmr/.env
 __pycache__/
 *.pyc
+murmr/*.log

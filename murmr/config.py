@@ -8,9 +8,7 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 # --- Audio & Transcription ---
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
 AUDIO_SAMPLERATE = int(os.getenv("AUDIO_SAMPLERATE", "16000"))
-
-# --- Hotkey ---
-HOTKEY_COMBO = os.getenv("HOTKEY_COMBO", "ctrl+shift+space")
+WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "en")  # set to None for auto-detect
 
 # --- Notion (Phase 2) ---
 NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")

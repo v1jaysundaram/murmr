@@ -1,6 +1,6 @@
 import numpy as np
 from faster_whisper import WhisperModel
-from config import WHISPER_MODEL, AUDIO_SAMPLERATE
+from config import WHISPER_MODEL, AUDIO_SAMPLERATE, WHISPER_LANGUAGE
 
 
 class Transcriber:
@@ -21,9 +21,9 @@ class Transcriber:
         # We join them all into one string.
         segments, _ = self.model.transcribe(
             audio,
-            language="en",         # Force English — remove this line for auto-detect
-            vad_filter=True,       # Skip silent parts automatically
-            beam_size=5,           # Higher = more accurate but slower (5 is a good default)
+            language=WHISPER_LANGUAGE or None,  # None = auto-detect; set WHISPER_LANGUAGE in .env
+            vad_filter=True,                    # Skip silent parts automatically
+            beam_size=5,                        # Higher = more accurate but slower (5 is a good default)
         )
 
         text = " ".join(segment.text.strip() for segment in segments)
