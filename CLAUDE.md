@@ -65,8 +65,8 @@ launch_murmr.bat          ← double-click to start (no terminal window)
 ### Phase 1 — Core (paste-to-cursor) ✓
 End-to-end flow working: press hotkey → record → transcribe → paste.
 
-### Phase 2 — Notion integration
-Wire up `notion_writer.py` and connect it in `main.py` so transcriptions are also logged.
+### Phase 2 — Notion integration ✓
+`notion_writer.py` logs every transcription to a Notion page with a timestamp. Toggled on/off from the tray icon (off by default). Requires `NOTION_TOKEN` and `NOTION_PAGE_ID` in `.env`.
 
 ---
 

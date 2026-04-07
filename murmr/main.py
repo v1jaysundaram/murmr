@@ -12,6 +12,7 @@ from pynput import keyboard as kb
 from pynput.keyboard import Controller as KeyboardController, Key
 
 from config import WHISPER_MODEL
+from notion_writer import append_to_notion
 from recorder import get_rms, start_recording, stop_recording
 from transcriber import Transcriber
 
@@ -38,6 +39,9 @@ _keyboard = KeyboardController()
 _pressed_keys = set()
 _combo_fired = False
 _CTRL_KEYS = {kb.Key.ctrl, kb.Key.ctrl_l, kb.Key.ctrl_r}
+
+# Notion toggle
+_notion_enabled = False
 
 # Tray
 _tray_icon = None
@@ -233,6 +237,15 @@ def _transcription_worker():
     if text:
         logging.info("Transcribed: %s", text)
         do_paste(text)
+        if _notion_enabled:
+            def _notion_worker():
+                try:
+                    append_to_notion(text)
+                except Exception as e:
+                    logging.error("Notion write failed: %s", e)
+                    if _tray_icon:
+                        _tray_icon.notify("Notion write failed — check murmr.log", "murmr")
+            threading.Thread(target=_notion_worker, daemon=True).start()
     else:
         logging.warning("Nothing transcribed — try speaking louder.")
 
@@ -288,6 +301,12 @@ def on_key_release(key):
 # Tray menu
 # ---------------------------------------------------------------------------
 
+def _toggle_notion(icon, item):
+    global _notion_enabled
+    _notion_enabled = not _notion_enabled
+    logging.info("Notion logging %s.", "enabled" if _notion_enabled else "disabled")
+
+
 def _quit(icon, item):
     icon.stop()
     _ui(_tk_root.destroy)
@@ -317,6 +336,12 @@ def main():
 
     menu = pystray.Menu(
         pystray.MenuItem("murmr", None, enabled=False),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem(
+            "Log to Notion",
+            _toggle_notion,
+            checked=lambda item: _notion_enabled,
+        ),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", _quit),
     )
