@@ -13,3 +13,8 @@ WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "en")  # set to None for auto-d
 # --- Notion (Phase 2) ---
 NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
 NOTION_PAGE_ID = os.getenv("NOTION_PAGE_ID", "")
+
+# --- UI ---
+OVERLAY_THEME = os.getenv("OVERLAY_THEME", "dark")
+DOCK_X = os.getenv("DOCK_X", "")
+DOCK_Y = os.getenv("DOCK_Y", "")

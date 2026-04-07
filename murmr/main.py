@@ -8,12 +8,14 @@ import tkinter as tk
 import pyperclip
 import pystray
 from PIL import Image, ImageDraw, ImageFont
-from pynput import keyboard as kb
 from pynput.keyboard import Controller as KeyboardController, Key
 
-from config import WHISPER_MODEL
+import hotkeys
+from config import DOCK_X, DOCK_Y, OVERLAY_THEME, WHISPER_MODEL
+from dock import Dock
 from notion_writer import append_to_notion
 from recorder import get_rms, start_recording, stop_recording
+from settings_window import open_settings
 from transcriber import Transcriber
 
 # ---------------------------------------------------------------------------
@@ -31,14 +33,9 @@ logging.getLogger("faster_whisper").setLevel(logging.DEBUG)
 # ---------------------------------------------------------------------------
 # Global state
 # ---------------------------------------------------------------------------
-_is_recording = False
-_transcriber = None
-_keyboard = KeyboardController()
-
-# Hotkey: hold Ctrl, press Win to toggle
-_pressed_keys = set()
-_combo_fired = False
-_CTRL_KEYS = {kb.Key.ctrl, kb.Key.ctrl_l, kb.Key.ctrl_r}
+_is_recording  = False
+_transcriber   = None
+_keyboard      = KeyboardController()
 
 # Notion toggle
 _notion_enabled = False
@@ -46,13 +43,40 @@ _notion_enabled = False
 # Tray
 _tray_icon = None
 
+# Dock
+_dock = None
+
 # Overlay
-_tk_root = None
-_overlay = None
+_tk_root    = None
+_overlay    = None
 _bar_canvas = None
-_bar_rects = []
-_bar_phase = 0.0
+_bar_rects  = []
+_bar_phase  = 0.0
 _animate_job = None
+
+# Current theme (updated by settings)
+_overlay_theme = OVERLAY_THEME
+
+# .env path
+_ENV_PATH = os.path.join(os.path.dirname(__file__), ".env")
+
+# ---------------------------------------------------------------------------
+# Theme definitions
+# ---------------------------------------------------------------------------
+THEMES = {
+    "dark": {
+        "outer":  "#1a1a1a",
+        "inner":  "#080808",
+        "bar_on": "#ffffff",
+        "bar_off": "#2a2a2a",
+    },
+    "light": {
+        "outer":  "#cccccc",
+        "inner":  "#f0f0f0",
+        "bar_on": "#222222",
+        "bar_off": "#cccccc",
+    },
+}
 
 # Overlay design constants
 OVERLAY_W  = 140
@@ -60,8 +84,6 @@ OVERLAY_H  = 40
 NUM_BARS   = 7
 BAR_W      = 2
 BAR_GAP    = 5
-BAR_ON     = "#ffffff"   # white — recording
-BAR_OFF    = "#2a2a2a"   # almost invisible — transcribing
 CHROMA_KEY = "#ff00ff"   # transparent hole colour (never used in the design)
 
 
@@ -73,7 +95,7 @@ def _make_tray_icon(recording=False):
     size = 64
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    bg = (200, 50, 50) if recording else (45, 45, 48)
+    bg = (76, 175, 80) if recording else (45, 45, 48)  # green while recording
     draw.rounded_rectangle([2, 2, size - 2, size - 2], radius=12, fill=bg)
     try:
         font = ImageFont.truetype("arialbd.ttf", 36)
@@ -103,12 +125,15 @@ def _rounded_rect(canvas, x1, y1, x2, y2, r, **kw):
 def _build_overlay():
     global _overlay, _bar_canvas, _bar_rects
 
+    logging.info("Building overlay — theme: %s", _overlay_theme)
+    theme = THEMES.get(_overlay_theme, THEMES["dark"])
+
     _overlay = tk.Toplevel(_tk_root)
     _overlay.overrideredirect(True)
     _overlay.attributes("-topmost", True)
     _overlay.attributes("-alpha", 0.88)
     _overlay.configure(bg=CHROMA_KEY)
-    _overlay.wm_attributes("-transparentcolor", CHROMA_KEY)  # real transparent corners
+    _overlay.wm_attributes("-transparentcolor", CHROMA_KEY)
 
     sw = _overlay.winfo_screenwidth()
     sh = _overlay.winfo_screenheight()
@@ -122,16 +147,13 @@ def _build_overlay():
     )
     _bar_canvas.pack()
 
-    r = OVERLAY_H // 2  # full pill radius
+    r = OVERLAY_H // 2
 
-    # Outer subtle border ring
     _rounded_rect(_bar_canvas, 0, 0, OVERLAY_W, OVERLAY_H, r,
-                  fill="#1a1a1a", outline="")
-    # Inner black pill — 1px inset
+                  fill=theme["outer"], outline="")
     _rounded_rect(_bar_canvas, 1, 1, OVERLAY_W-1, OVERLAY_H-1, r-1,
-                  fill="#080808", outline="")
+                  fill=theme["inner"], outline="")
 
-    # Bars — centred
     total_bar_w = NUM_BARS * BAR_W + (NUM_BARS - 1) * BAR_GAP
     start_x = (OVERLAY_W - total_bar_w) // 2
     cy = OVERLAY_H // 2
@@ -141,9 +163,9 @@ def _build_overlay():
         x0 = start_x + i * (BAR_W + BAR_GAP)
         rect = _bar_canvas.create_rectangle(
             x0, cy - 3, x0 + BAR_W, cy + 3,
-            fill=BAR_ON, outline="",
+            fill=theme["bar_on"], outline="",
         )
-        _bar_rects.append((rect, x0))
+        _bar_rects.append((rect, x0, theme["bar_on"], theme["bar_off"]))
 
 
 def _show_overlay():
@@ -169,22 +191,17 @@ def _hide_overlay():
 
 
 def _animate_bars():
-    """
-    Reactive animation: bar heights are driven by live mic RMS level,
-    modulated by a sine wave per bar so they move independently.
-    """
     global _bar_phase, _animate_job
 
     if not _bar_canvas or not _overlay:
         return
 
     cy    = OVERLAY_H // 2
-    level = get_rms()           # 0.0 – 1.0 from recorder
+    level = get_rms()
     min_h = 2.0
-    max_h = (OVERLAY_H // 2) - 4   # max usable half-height
+    max_h = (OVERLAY_H // 2) - 4
 
-    for i, (rect, x0) in enumerate(_bar_rects):
-        # Sine modulation per bar, scaled by actual mic level
+    for i, (rect, x0, bar_on, _bar_off) in enumerate(_bar_rects):
         wave   = 0.5 + 0.5 * math.sin(_bar_phase + i * 0.9)
         height = min_h + (max_h - min_h) * wave * max(level, 0.08)
         _bar_canvas.coords(rect, x0, cy - height, x0 + BAR_W, cy + height)
@@ -208,7 +225,7 @@ def _ui(fn):
 
 def do_paste(text):
     pyperclip.copy(text)
-    time.sleep(0.15)  # let the target window regain focus after the hotkey is released
+    time.sleep(0.15)
     _keyboard.press(Key.ctrl)
     _keyboard.press('v')
     _keyboard.release('v')
@@ -225,10 +242,12 @@ def _transcription_worker():
     audio = stop_recording()
     logging.info("Transcribing...")
 
+    _ui(lambda: _dock.update_status("transcribing") if _dock else None)
+
     def _dim_bars():
         if _bar_canvas:
-            for rect, _ in _bar_rects:
-                _bar_canvas.itemconfig(rect, fill=BAR_OFF)
+            for rect, _, _bar_on, bar_off in _bar_rects:
+                _bar_canvas.itemconfig(rect, fill=bar_off)
 
     _ui(_dim_bars)
 
@@ -251,6 +270,7 @@ def _transcription_worker():
 
     _is_recording = False
     _ui(_hide_overlay)
+    _ui(lambda: _dock.update_status("idle") if _dock else None)
     if _tray_icon:
         _tray_icon.icon = _make_tray_icon(recording=False)
 
@@ -271,6 +291,7 @@ def _toggle_recording():
         if _tray_icon:
             _tray_icon.icon = _make_tray_icon(recording=True)
         _ui(_show_overlay)
+        _ui(lambda: _dock.update_status("recording") if _dock else None)
         start_recording()
         logging.info("Recording started.")
     else:
@@ -279,33 +300,80 @@ def _toggle_recording():
 
 
 # ---------------------------------------------------------------------------
-# Keyboard listener — Ctrl+Win to toggle
+# Push-to-talk handlers
 # ---------------------------------------------------------------------------
 
-def on_key_press(key):
-    global _combo_fired
-    _pressed_keys.add(key)
-    if key == kb.Key.cmd and (_pressed_keys & _CTRL_KEYS) and not _combo_fired:
-        _combo_fired = True
-        _toggle_recording()
+def _ptt_start():
+    global _is_recording
+
+    if _transcriber is None:
+        logging.warning("PTT pressed but model is still loading — ignoring.")
+        return
+
+    if _is_recording:
+        return  # Don't interrupt an active toggle-mode session
+
+    _is_recording = True
+    if _tray_icon:
+        _tray_icon.icon = _make_tray_icon(recording=True)
+    _ui(_show_overlay)
+    _ui(lambda: _dock.update_status("recording") if _dock else None)
+    start_recording()
+    logging.info("PTT recording started.")
 
 
-def on_key_release(key):
-    global _combo_fired
-    _pressed_keys.discard(key)
-    if key == kb.Key.cmd:
-        _combo_fired = False
+def _ptt_stop():
+    if not _is_recording:
+        return
+    logging.info("PTT recording stopped.")
+    threading.Thread(target=_transcription_worker, daemon=True).start()
+
+
+# ---------------------------------------------------------------------------
+# Notion toggle (shared setter used by dock, tray, and settings)
+# ---------------------------------------------------------------------------
+
+def _set_notion_enabled(value: bool):
+    global _notion_enabled
+    _notion_enabled = value
+    logging.info("Notion logging %s.", "enabled" if value else "disabled")
+    if _dock:
+        _ui(lambda: _dock.update_notion_button(value))
+    if _tray_icon:
+        _tray_icon.update_menu()   # keep tray checkbox in sync
+
+
+def _toggle_notion_from_tray(icon, item):
+    _set_notion_enabled(not _notion_enabled)
+
+
+# ---------------------------------------------------------------------------
+# Theme change callback (from settings)
+# ---------------------------------------------------------------------------
+
+def _on_theme_change(theme: str):
+    global _overlay_theme
+    _overlay_theme = theme
+    logging.info("Theme callback fired — overlay_theme is now: %s", theme)
+
+
+# ---------------------------------------------------------------------------
+# Settings opener
+# ---------------------------------------------------------------------------
+
+def _open_settings():
+    open_settings(
+        tk_root=_tk_root,
+        get_notion_enabled=lambda: _notion_enabled,
+        set_notion_enabled=_set_notion_enabled,
+        on_theme_change=_on_theme_change,
+        env_path=_ENV_PATH,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Tray menu
 # ---------------------------------------------------------------------------
-
-def _toggle_notion(icon, item):
-    global _notion_enabled
-    _notion_enabled = not _notion_enabled
-    logging.info("Notion logging %s.", "enabled" if _notion_enabled else "disabled")
-
 
 def _quit(icon, item):
     icon.stop()
@@ -317,7 +385,7 @@ def _quit(icon, item):
 # ---------------------------------------------------------------------------
 
 def main():
-    global _transcriber, _tray_icon, _tk_root
+    global _transcriber, _tray_icon, _tk_root, _dock
 
     _tk_root = tk.Tk()
     _tk_root.withdraw()
@@ -326,26 +394,56 @@ def main():
         global _transcriber
         logging.info("Loading Whisper model...")
         _transcriber = Transcriber()
-        logging.info("Ready. Press Ctrl+Win to start/stop dictation.")
+        logging.info("Ready. Ctrl+Win to toggle hands-free  |  Hold Ctrl+Alt+Win for push-to-talk.")
 
     threading.Thread(target=_load_model, daemon=True).start()
 
-    listener = kb.Listener(on_press=on_key_press, on_release=on_key_release)
-    listener.daemon = True
-    listener.start()
+    # Parse saved dock position
+    try:
+        dock_x = int(DOCK_X) if DOCK_X else None
+        dock_y = int(DOCK_Y) if DOCK_Y else None
+    except ValueError:
+        dock_x = dock_y = None
+
+    _dock = Dock(
+        tk_root=_tk_root,
+        on_notion_toggle=lambda: _set_notion_enabled(not _notion_enabled),
+        on_open_settings=_open_settings,
+        env_path=_ENV_PATH,
+        initial_x=dock_x,
+        initial_y=dock_y,
+    )
+
+    hotkeys.start_listener(
+        on_toggle=_toggle_recording,
+        on_ptt_start=_ptt_start,
+        on_ptt_stop=_ptt_stop,
+        is_recording=lambda: _is_recording,
+    )
 
     menu = pystray.Menu(
         pystray.MenuItem("murmr", None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem(
-            "Log to Notion",
-            _toggle_notion,
+            "Notion logging",
+            _toggle_notion_from_tray,
             checked=lambda item: _notion_enabled,
         ),
+        pystray.MenuItem(
+            "AI cleanup",
+            None,
+            checked=lambda item: False,
+            enabled=False,
+        ),
+        pystray.MenuItem("Settings", lambda icon, item: _ui(_open_settings)),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", _quit),
     )
-    _tray_icon = pystray.Icon("murmr", _make_tray_icon(), "murmr — Ctrl+Win to record", menu)
+    _tray_icon = pystray.Icon(
+        "murmr", _make_tray_icon(),
+        "murmr  |  Ctrl+Win → toggle hands-free  |  Hold Ctrl+Alt+Win → push-to-talk",
+        menu,
+    )
     _tray_icon.run_detached()
 
     _tk_root.mainloop()
