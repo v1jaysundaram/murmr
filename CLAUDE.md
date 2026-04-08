@@ -83,6 +83,9 @@ After transcription, runs text through an AI model to remove fillers, fix gramma
 ### Phase 5 — Ollama integration ✓
 Settings → AI now offers a backend selector: **OpenAI** (cloud) or **Ollama (local)**. Ollama runs fully on-device — no API key, no internet. Recommended model: `llama3.2:3b` (`ollama pull llama3.2:3b`).
 
+### Phase 6 — Parallel transcription ✓ (v1.0.0)
+VAD-chunked streaming: silence detection in `recorder.py` splits audio into sentence segments mid-recording. Each segment is transcribed by a background worker thread immediately. On stop, only the final (unfinished) segment remains. All results joined and pasted once — UX unchanged, latency significantly reduced for longer dictations.
+
 ---
 
 ## Settings (configured in Settings window or `.env`)

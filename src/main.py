@@ -39,6 +39,11 @@ _is_recording  = False
 _transcriber   = None
 _keyboard      = KeyboardController()
 
+# Segment transcription (parallel, during recording)
+_segment_results       = []
+_segment_results_lock  = threading.Lock()
+_segment_worker_thread = None
+
 # Notion toggle
 _notion_enabled = False
 
@@ -243,6 +248,28 @@ def do_paste(text):
 
 
 # ---------------------------------------------------------------------------
+# Segment transcription worker (runs during recording)
+# ---------------------------------------------------------------------------
+
+def _segment_transcriber_worker():
+    """Reads completed audio segments from recorder.segment_queue and transcribes
+    each one immediately. Runs as a daemon thread for the duration of a recording
+    session. Stops when it receives a None sentinel."""
+    from recorder import segment_queue
+    while True:
+        audio = segment_queue.get()
+        if audio is None:          # sentinel — recording is over
+            break
+        if len(audio) < 1000:      # skip near-empty chunks (noise bursts)
+            continue
+        text = _transcriber.transcribe(audio).strip()
+        if text:
+            with _segment_results_lock:
+                _segment_results.append(text)
+            logging.info("Segment transcribed: %s", text)
+
+
+# ---------------------------------------------------------------------------
 # UI helpers
 # ---------------------------------------------------------------------------
 
@@ -252,8 +279,13 @@ def _update_dock_status(state: str):
 
 def _begin_recording():
     """Shared setup for both toggle-mode and push-to-talk recording start."""
-    global _is_recording
-    _is_recording = True
+    global _is_recording, _segment_results, _segment_worker_thread
+    _is_recording    = True
+    _segment_results = []
+    _segment_worker_thread = threading.Thread(
+        target=_segment_transcriber_worker, daemon=True
+    )
+    _segment_worker_thread.start()
     if _tray_icon:
         _tray_icon.icon = _make_tray_icon(recording=True)
     _ui(_show_overlay)
@@ -268,8 +300,8 @@ def _begin_recording():
 def _transcription_worker():
     global _is_recording
 
-    audio = stop_recording()
-    logging.info("Transcribing...")
+    # Stop mic — get whatever audio wasn't flushed as a mid-session segment
+    final_audio = stop_recording()
 
     _update_dock_status("transcribing")
 
@@ -280,7 +312,20 @@ def _transcription_worker():
 
     _ui(_dim_bars)
 
-    text = _transcriber.transcribe(audio).strip()
+    # Push the final chunk + sentinel into the queue so the segment worker
+    # transcribes it and then knows to exit cleanly
+    from recorder import segment_queue
+    if len(final_audio) > 1000:
+        segment_queue.put(final_audio)
+    segment_queue.put(None)  # sentinel
+
+    # Wait for the segment worker to finish all pending transcriptions
+    if _segment_worker_thread:
+        _segment_worker_thread.join()
+
+    # Assemble full text from all segments (in order)
+    with _segment_results_lock:
+        text = " ".join(_segment_results).strip()
 
     if text:
         logging.info("Transcribed: %s", text)

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0] — 2026-04-09
+### Added
+- Parallel transcription — sentences transcribed in the background while you speak; only the final segment waits on stop. Noticeably faster for anything longer than ~5s.
+
+---
+
 ## [0.1.5] — 2026-04-09
 ### Added
 - Dock `[✕]` close button — quits the app
