@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.1.4 — 2026-04-09 — Ollama Integration (local AI backend)
+
+### What's new
+
+**Ollama as an alternative AI cleanup backend**
+- AI cleanup now supports two backends: OpenAI (cloud) and Ollama (fully local, no API key)
+- New `clean_transcription_ollama()` in `ai_cleaner.py` — calls Ollama's OpenAI-compatible API at `localhost:11434/v1`
+- Same system prompt and fallback behaviour as the OpenAI path — raw transcription is never lost if Ollama is unreachable
+- Recommended model: `llama3.2:3b` (~2 GB RAM, fast on CPU, excellent at short instruction-following tasks)
+- Zero new dependencies — reuses the `openai` Python package already installed
+
+**Settings → AI section redesigned**
+- New **Backend** radio: `OpenAI` / `Ollama (local)` — panels swap dynamically on selection
+- **Ollama panel**: Model field (default `llama3.2:3b`), Endpoint field (default `http://localhost:11434/v1`), Test Connection button
+- **OpenAI panel**: unchanged (API Key, Model, Test Connection)
+- Save persists the selected backend and Ollama settings to `.env` and applies them live (no restart)
+
+**Improved logging**
+- `AI state: enabled=... backend=... key_present=... model=...` logged on every transcription
+- `Ollama cleaned: "raw" → "cleaned"` logged on every successful Ollama cleanup
+
+### New `.env` keys
+| Key | Default | What it controls |
+|---|---|---|
+| `AI_BACKEND` | `openai` | Which backend to use: `openai` or `ollama` |
+| `OLLAMA_MODEL` | `llama3.2:3b` | Ollama model name (must be pulled first) |
+| `OLLAMA_ENDPOINT` | `http://localhost:11434/v1` | Ollama API endpoint |
+
+---
+
 ## v0.1.3 — 2026-04-08 — AI Cleanup (Phase 4)
 
 ### What's new

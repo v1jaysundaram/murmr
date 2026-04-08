@@ -43,9 +43,12 @@ _keyboard      = KeyboardController()
 _notion_enabled = False
 
 # AI cleanup toggle — key/model kept as live globals so settings changes take effect immediately
-_ai_enabled    = config.AI_ENABLED
-_openai_api_key = config.OPENAI_API_KEY
-_openai_model  = config.OPENAI_MODEL
+_ai_enabled      = config.AI_ENABLED
+_openai_api_key  = config.OPENAI_API_KEY
+_openai_model    = config.OPENAI_MODEL
+_ai_backend      = config.AI_BACKEND
+_ollama_model    = config.OLLAMA_MODEL
+_ollama_endpoint = config.OLLAMA_ENDPOINT
 
 # Tray
 _tray_icon = None
@@ -262,11 +265,15 @@ def _transcription_worker():
 
     if text:
         logging.info("Transcribed: %s", text)
-        logging.info("AI state: enabled=%s  key_present=%s  model=%s",
-                     _ai_enabled, bool(_openai_api_key), _openai_model)
-        if _ai_enabled and _openai_api_key:
+        logging.info("AI state: enabled=%s  backend=%s  key_present=%s  model=%s",
+                     _ai_enabled, _ai_backend, bool(_openai_api_key), _openai_model)
+        if _ai_enabled:
             _ui(lambda: _dock.update_status("cleaning") if _dock else None)
-            text = clean_transcription(text, _openai_api_key, _openai_model)
+            if _ai_backend == "ollama":
+                from ai_cleaner import clean_transcription_ollama
+                text = clean_transcription_ollama(text, _ollama_model, _ollama_endpoint)
+            elif _openai_api_key:
+                text = clean_transcription(text, _openai_api_key, _openai_model)
         do_paste(text)
         if _notion_enabled:
             def _notion_worker():
@@ -355,15 +362,25 @@ def _set_notion_enabled(value: bool):
         _tray_icon.update_menu()   # keep tray checkbox in sync
 
 
-def _set_ai_enabled(value: bool, api_key: str = None, model: str = None):
+def _set_ai_enabled(value: bool, api_key: str = None, model: str = None,
+                    backend: str = None, ollama_model: str = None,
+                    ollama_endpoint: str = None):
     global _ai_enabled, _openai_api_key, _openai_model
+    global _ai_backend, _ollama_model, _ollama_endpoint
     _ai_enabled = value
     if api_key is not None:
         _openai_api_key = api_key
     if model is not None:
         _openai_model = model or "gpt-4o-mini"
-    logging.info("AI cleanup %s.  key_present=%s  model=%s",
-                 "enabled" if value else "disabled", bool(_openai_api_key), _openai_model)
+    if backend is not None:
+        _ai_backend = backend
+    if ollama_model is not None:
+        _ollama_model = ollama_model
+    if ollama_endpoint is not None:
+        _ollama_endpoint = ollama_endpoint
+    logging.info("AI cleanup %s.  backend=%s  key_present=%s  model=%s",
+                 "enabled" if value else "disabled", _ai_backend,
+                 bool(_openai_api_key), _openai_model)
     if _dock:
         _ui(lambda: _dock.update_ai_button(value))
     if _tray_icon:

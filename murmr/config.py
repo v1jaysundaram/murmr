@@ -15,9 +15,12 @@ NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
 NOTION_PAGE_ID = os.getenv("NOTION_PAGE_ID", "")
 
 # --- AI Cleanup (Phase 4) ---
-AI_ENABLED    = os.getenv("AI_ENABLED", "false").lower() == "true"
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL  = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+AI_ENABLED       = os.getenv("AI_ENABLED", "false").lower() == "true"
+OPENAI_API_KEY   = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL     = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+AI_BACKEND       = os.getenv("AI_BACKEND", "openai")   # "openai" or "ollama"
+OLLAMA_MODEL     = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+OLLAMA_ENDPOINT  = os.getenv("OLLAMA_ENDPOINT", "http://localhost:11434/v1")
 
 # --- UI ---
 OVERLAY_THEME = os.getenv("OVERLAY_THEME", "dark")

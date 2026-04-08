@@ -77,3 +77,38 @@ def clean_transcription(text: str, api_key: str, model: str = "gpt-4o-mini") -> 
     except Exception as e:
         logging.error("AI cleanup failed (%s) — using raw transcription.", e)
         return text
+
+
+def clean_transcription_ollama(text: str, model: str = "llama3.2:3b",
+                                endpoint: str = "http://localhost:11434/v1") -> str:
+    """
+    Clean up a raw Whisper transcription using a locally running Ollama model.
+
+    Uses Ollama's OpenAI-compatible API — no internet or API key required.
+    Falls back to the raw transcription if Ollama is unreachable or fails.
+    """
+    if not text.strip():
+        return text
+
+    try:
+        import openai
+        client = openai.OpenAI(api_key="ollama", base_url=endpoint)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user",   "content": text},
+            ],
+            max_tokens=500,
+            temperature=0.1,
+        )
+        cleaned = response.choices[0].message.content.strip()
+        if cleaned:
+            logging.info("Ollama cleaned: %r → %r", text, cleaned)
+            return cleaned
+        logging.warning("Ollama returned empty response — using raw transcription.")
+        return text
+
+    except Exception as e:
+        logging.error("Ollama cleanup failed (%s) — using raw transcription.", e)
+        return text

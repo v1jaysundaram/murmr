@@ -59,7 +59,7 @@ murmr/                    ← the actual app code lives here
 ├── settings_window.py    ← settings GUI + .env read/write helpers
 ├── main.py               ← tray icon, overlay, orchestration, wires everything
 ├── notion_writer.py      ← sends transcriptions to Notion
-├── ai_cleaner.py         ← OpenAI cleanup pass (fillers, grammar, self-corrections)
+├── ai_cleaner.py         ← AI cleanup pass (fillers, grammar, self-corrections) — supports OpenAI and Ollama
 └── murmr.log             ← runtime log (transcriptions, errors, model output)
 launch_murmr.bat          ← double-click to start (no terminal window)
 ```
@@ -78,7 +78,10 @@ End-to-end flow working: press hotkey → record → transcribe → paste.
 Floating dock, settings window, push-to-talk hotkey, waveform themes, tray sync.
 
 ### Phase 4 — AI cleanup ✓
-After transcription, runs text through OpenAI (`gpt-4o-mini`) to remove fillers, fix grammar, and handle self-corrections before pasting. Toggle via dock `[AI]` button or Settings.
+After transcription, runs text through an AI model to remove fillers, fix grammar, and handle self-corrections before pasting. Toggle via dock `[AI]` button or Settings.
+
+### Phase 5 — Ollama integration ✓
+Settings → AI now offers a backend selector: **OpenAI** (cloud) or **Ollama (local)**. Ollama runs fully on-device — no API key, no internet. Recommended model: `llama3.2:3b` (`ollama pull llama3.2:3b`).
 
 ---
 
@@ -94,8 +97,11 @@ After transcription, runs text through OpenAI (`gpt-4o-mini`) to remove fillers,
 | `OVERLAY_THEME` | `dark` | Waveform overlay theme: `dark` or `light`. |
 | `DOCK_X` / `DOCK_Y` | _(screen edge)_ | Last saved dock position (set automatically by dragging). |
 | `AI_ENABLED` | `false` | Whether AI cleanup runs after transcription. |
+| `AI_BACKEND` | `openai` | Which backend to use: `openai` or `ollama`. |
 | `OPENAI_API_KEY` | _(empty)_ | Your OpenAI secret key. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model used for cleanup. |
+| `OLLAMA_MODEL` | `llama3.2:3b` | Ollama model to use (must be pulled first). |
+| `OLLAMA_ENDPOINT` | `http://localhost:11434/v1` | Ollama API endpoint. |
 
 ---
 

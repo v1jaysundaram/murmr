@@ -248,7 +248,7 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
     _win.update_idletasks()
     sw = _win.winfo_screenwidth()
     sh = _win.winfo_screenheight()
-    w, h = 400, 560
+    w, h = 400, 640
     _win.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
 
     # ── Style ────────────────────────────────────────────────────────────────
@@ -411,11 +411,28 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
         activeforeground=FG, font=("Segoe UI", 9),
     ).pack(anchor="w", padx=10, pady=(6, 2))
 
-    openai_key_var = tk.StringVar(value=env.get("OPENAI_API_KEY", ""))
+    # Backend selector
+    backend_var = tk.StringVar(value=env.get("AI_BACKEND", "openai"))
+
+    backend_row = tk.Frame(llm_frame, bg=SECTION_BG)
+    backend_row.pack(anchor="w", padx=20, pady=(2, 4))
+    tk.Label(backend_row, text="Backend:", bg=SECTION_BG, fg=FG,
+             font=("Segoe UI", 9)).pack(side="left", padx=(0, 10))
+    for val, label in [("openai", "OpenAI"), ("ollama", "Ollama (local)")]:
+        tk.Radiobutton(
+            backend_row, text=label, variable=backend_var, value=val,
+            bg=SECTION_BG, fg=FG, selectcolor=BTN_BG,
+            activebackground=SECTION_BG, activeforeground=FG,
+            font=("Segoe UI", 9),
+        ).pack(side="left", padx=4)
+
+    # ── OpenAI panel ─────────────────────────────────────────────────────────
+    openai_panel = tk.Frame(llm_frame, bg=SECTION_BG)
+
+    openai_key_var   = tk.StringVar(value=env.get("OPENAI_API_KEY", ""))
     openai_model_var = tk.StringVar(value=env.get("OPENAI_MODEL", "gpt-4o-mini"))
 
-    # API Key row
-    f_ai_key = tk.Frame(llm_frame, bg=SECTION_BG)
+    f_ai_key = tk.Frame(openai_panel, bg=SECTION_BG)
     f_ai_key.pack(fill="x", padx=16, pady=1)
     tk.Label(f_ai_key, text="API Key", bg=SECTION_BG, fg=FG,
              font=("Segoe UI", 9), width=10, anchor="w").pack(
@@ -423,8 +440,7 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
     make_entry(f_ai_key, openai_key_var, show="●").pack(
         side="left", fill="x", expand=True, padx=(0, 10))
 
-    # Model row
-    f_ai_model = tk.Frame(llm_frame, bg=SECTION_BG)
+    f_ai_model = tk.Frame(openai_panel, bg=SECTION_BG)
     f_ai_model.pack(fill="x", padx=16, pady=1)
     tk.Label(f_ai_model, text="Model", bg=SECTION_BG, fg=FG,
              font=("Segoe UI", 9), width=10, anchor="w").pack(
@@ -432,20 +448,19 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
     make_entry(f_ai_model, openai_model_var).pack(
         side="left", fill="x", expand=True, padx=(0, 10))
 
-    # Test AI connection row
-    ai_test_frame = tk.Frame(llm_frame, bg=SECTION_BG)
-    ai_test_frame.pack(fill="x", padx=10, pady=(4, 8))
+    openai_test_frame = tk.Frame(openai_panel, bg=SECTION_BG)
+    openai_test_frame.pack(fill="x", padx=10, pady=(4, 8))
 
-    ai_status_var = tk.StringVar(value="")
-    ai_status_lbl = tk.Label(ai_test_frame, textvariable=ai_status_var,
-                             bg=SECTION_BG, fg=FG_DIM, font=("Segoe UI", 8),
-                             wraplength=240, justify="left")
-    ai_status_lbl.pack(side="right", padx=(8, 0))
+    openai_status_var = tk.StringVar(value="")
+    openai_status_lbl = tk.Label(openai_test_frame, textvariable=openai_status_var,
+                                 bg=SECTION_BG, fg=FG_DIM, font=("Segoe UI", 8),
+                                 wraplength=220, justify="left")
+    openai_status_lbl.pack(side="right", padx=(8, 0))
 
-    def _run_ai_test():
-        ai_status_var.set("Testing…")
-        ai_status_lbl.config(fg=FG_DIM)
-        key = openai_key_var.get().strip()
+    def _run_openai_test():
+        openai_status_var.set("Testing…")
+        openai_status_lbl.config(fg=FG_DIM)
+        key   = openai_key_var.get().strip()
         model = openai_model_var.get().strip() or "gpt-4o-mini"
 
         def _worker():
@@ -462,17 +477,92 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
                 result, color = f"Failed: {str(e)[:100]}", "#f44336"
             if _win and _win.winfo_exists():
                 _win.after(0, lambda: (
-                    ai_status_var.set(result),
-                    ai_status_lbl.config(fg=color),
+                    openai_status_var.set(result),
+                    openai_status_lbl.config(fg=color),
                 ))
 
         threading.Thread(target=_worker, daemon=True).start()
 
     tk.Button(
-        ai_test_frame, text="Test Connection", command=_run_ai_test,
+        openai_test_frame, text="Test Connection", command=_run_openai_test,
         bg=BTN_BG, fg=FG, activebackground="#444444", activeforeground=FG,
         relief="flat", font=("Segoe UI", 9), padx=8, pady=3, cursor="hand2",
     ).pack(side="left")
+
+    # ── Ollama panel ──────────────────────────────────────────────────────────
+    ollama_panel = tk.Frame(llm_frame, bg=SECTION_BG)
+
+    ollama_model_var    = tk.StringVar(value=env.get("OLLAMA_MODEL", "llama3.2:3b"))
+    ollama_endpoint_var = tk.StringVar(value=env.get("OLLAMA_ENDPOINT", "http://localhost:11434/v1"))
+
+    f_ol_model = tk.Frame(ollama_panel, bg=SECTION_BG)
+    f_ol_model.pack(fill="x", padx=16, pady=1)
+    tk.Label(f_ol_model, text="Model", bg=SECTION_BG, fg=FG,
+             font=("Segoe UI", 9), width=10, anchor="w").pack(
+        side="left", padx=(10, 4), pady=6)
+    make_entry(f_ol_model, ollama_model_var).pack(
+        side="left", fill="x", expand=True, padx=(0, 10))
+
+    f_ol_endpoint = tk.Frame(ollama_panel, bg=SECTION_BG)
+    f_ol_endpoint.pack(fill="x", padx=16, pady=1)
+    tk.Label(f_ol_endpoint, text="Endpoint", bg=SECTION_BG, fg=FG,
+             font=("Segoe UI", 9), width=10, anchor="w").pack(
+        side="left", padx=(10, 4), pady=6)
+    make_entry(f_ol_endpoint, ollama_endpoint_var).pack(
+        side="left", fill="x", expand=True, padx=(0, 10))
+
+    ollama_test_frame = tk.Frame(ollama_panel, bg=SECTION_BG)
+    ollama_test_frame.pack(fill="x", padx=10, pady=(4, 8))
+
+    ollama_status_var = tk.StringVar(value="")
+    ollama_status_lbl = tk.Label(ollama_test_frame, textvariable=ollama_status_var,
+                                 bg=SECTION_BG, fg=FG_DIM, font=("Segoe UI", 8),
+                                 wraplength=220, justify="left")
+    ollama_status_lbl.pack(side="right", padx=(8, 0))
+
+    def _run_ollama_test():
+        ollama_status_var.set("Testing…")
+        ollama_status_lbl.config(fg=FG_DIM)
+        model    = ollama_model_var.get().strip() or "llama3.2:3b"
+        endpoint = ollama_endpoint_var.get().strip() or "http://localhost:11434/v1"
+
+        def _worker():
+            try:
+                import openai
+                client = openai.OpenAI(api_key="ollama", base_url=endpoint)
+                client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": "ping"}],
+                    max_tokens=1,
+                )
+                result, color = "Connected ✓", "#4caf50"
+            except Exception as e:
+                result, color = f"Failed: {str(e)[:100]}", "#f44336"
+            if _win and _win.winfo_exists():
+                _win.after(0, lambda: (
+                    ollama_status_var.set(result),
+                    ollama_status_lbl.config(fg=color),
+                ))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    tk.Button(
+        ollama_test_frame, text="Test Connection", command=_run_ollama_test,
+        bg=BTN_BG, fg=FG, activebackground="#444444", activeforeground=FG,
+        relief="flat", font=("Segoe UI", 9), padx=8, pady=3, cursor="hand2",
+    ).pack(side="left")
+
+    # Show/hide the correct panel based on backend selection
+    def _switch_panel(*_):
+        if backend_var.get() == "openai":
+            ollama_panel.pack_forget()
+            openai_panel.pack(fill="x")
+        else:
+            openai_panel.pack_forget()
+            ollama_panel.pack(fill="x")
+
+    backend_var.trace_add("write", _switch_panel)
+    _switch_panel()  # apply initial state
 
 
     # ── THEME SECTION ────────────────────────────────────────────────────────
@@ -512,8 +602,11 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
             "NOTION_PAGE_NAME": page_name_var.get().strip(),
             "OVERLAY_THEME":   theme_var.get(),
             "AI_ENABLED":      "true" if ai_var.get() else "false",
+            "AI_BACKEND":      backend_var.get(),
             "OPENAI_API_KEY":  openai_key_var.get().strip(),
             "OPENAI_MODEL":    openai_model_var.get().strip() or "gpt-4o-mini",
+            "OLLAMA_MODEL":    ollama_model_var.get().strip() or "llama3.2:3b",
+            "OLLAMA_ENDPOINT": ollama_endpoint_var.get().strip() or "http://localhost:11434/v1",
         }
         try:
             _write_env(env_path, updates)
@@ -528,6 +621,9 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
             ai_var.get(),
             openai_key_var.get().strip(),
             openai_model_var.get().strip() or "gpt-4o-mini",
+            backend=backend_var.get(),
+            ollama_model=ollama_model_var.get().strip() or "llama3.2:3b",
+            ollama_endpoint=ollama_endpoint_var.get().strip() or "http://localhost:11434/v1",
         )
         on_theme_change(theme_var.get())
         save_status_var.set("Saved ✓")
