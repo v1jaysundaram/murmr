@@ -213,7 +213,7 @@ def _extract_title(page: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
-                  on_theme_change, env_path):
+                  on_theme_change, get_ai_enabled, set_ai_enabled, env_path):
     """
     Open the settings window, or focus it if already open.
 
@@ -248,7 +248,7 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
     _win.update_idletasks()
     sw = _win.winfo_screenwidth()
     sh = _win.winfo_screenheight()
-    w, h = 400, 490
+    w, h = 400, 560
     _win.geometry(f"{w}x{h}+{(sw-w)//2}+{(sh-h)//2}")
 
     # ── Style ────────────────────────────────────────────────────────────────
@@ -396,29 +396,83 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
         relief="flat", font=("Segoe UI", 9), padx=8, pady=3, cursor="hand2",
     ).pack(side="left")
 
-    # ── AI SECTION (placeholder) ─────────────────────────────────────────────
-    section_label(_win, "AI  (coming soon)")
+    # ── AI SECTION ───────────────────────────────────────────────────────────
+    section_label(_win, "AI")
 
     llm_frame = tk.Frame(_win, bg=SECTION_BG)
     llm_frame.pack(fill="x", padx=16, pady=1)
 
+    ai_var = tk.BooleanVar(value=get_ai_enabled())
+
     tk.Checkbutton(
-        llm_frame, text="Enable AI cleanup",
-        bg=SECTION_BG, fg=FG_DIM, selectcolor=BTN_BG,
-        activebackground=SECTION_BG, activeforeground=FG_DIM,
-        font=("Segoe UI", 9), state="disabled",
+        llm_frame, text="Enable AI cleanup  (removes fillers, fixes self-corrections)",
+        variable=ai_var, bg=SECTION_BG, fg=FG,
+        selectcolor=BTN_BG, activebackground=SECTION_BG,
+        activeforeground=FG, font=("Segoe UI", 9),
     ).pack(anchor="w", padx=10, pady=(6, 2))
 
-    for label_text, placeholder in [("Model", "e.g. claude-sonnet-4-6"),
-                                     ("API Key", "sk-ant-…")]:
-        f = tk.Frame(llm_frame, bg=SECTION_BG)
-        f.pack(fill="x", padx=16, pady=1)
-        tk.Label(f, text=label_text, bg=SECTION_BG, fg=FG_DIM,
-                 font=("Segoe UI", 9), width=10, anchor="w").pack(
-            side="left", padx=(10, 4), pady=6)
-        e = tk.Entry(f, bg=BTN_BG, fg=FG_DIM, relief="flat",
-                     font=("Segoe UI", 9), state="disabled")
-        e.pack(side="left", fill="x", expand=True, padx=(0, 10))
+    openai_key_var = tk.StringVar(value=env.get("OPENAI_API_KEY", ""))
+    openai_model_var = tk.StringVar(value=env.get("OPENAI_MODEL", "gpt-4o-mini"))
+
+    # API Key row
+    f_ai_key = tk.Frame(llm_frame, bg=SECTION_BG)
+    f_ai_key.pack(fill="x", padx=16, pady=1)
+    tk.Label(f_ai_key, text="API Key", bg=SECTION_BG, fg=FG,
+             font=("Segoe UI", 9), width=10, anchor="w").pack(
+        side="left", padx=(10, 4), pady=6)
+    make_entry(f_ai_key, openai_key_var, show="●").pack(
+        side="left", fill="x", expand=True, padx=(0, 10))
+
+    # Model row
+    f_ai_model = tk.Frame(llm_frame, bg=SECTION_BG)
+    f_ai_model.pack(fill="x", padx=16, pady=1)
+    tk.Label(f_ai_model, text="Model", bg=SECTION_BG, fg=FG,
+             font=("Segoe UI", 9), width=10, anchor="w").pack(
+        side="left", padx=(10, 4), pady=6)
+    make_entry(f_ai_model, openai_model_var).pack(
+        side="left", fill="x", expand=True, padx=(0, 10))
+
+    # Test AI connection row
+    ai_test_frame = tk.Frame(llm_frame, bg=SECTION_BG)
+    ai_test_frame.pack(fill="x", padx=10, pady=(4, 8))
+
+    ai_status_var = tk.StringVar(value="")
+    ai_status_lbl = tk.Label(ai_test_frame, textvariable=ai_status_var,
+                             bg=SECTION_BG, fg=FG_DIM, font=("Segoe UI", 8),
+                             wraplength=240, justify="left")
+    ai_status_lbl.pack(side="right", padx=(8, 0))
+
+    def _run_ai_test():
+        ai_status_var.set("Testing…")
+        ai_status_lbl.config(fg=FG_DIM)
+        key = openai_key_var.get().strip()
+        model = openai_model_var.get().strip() or "gpt-4o-mini"
+
+        def _worker():
+            try:
+                import openai
+                client = openai.OpenAI(api_key=key)
+                client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": "ping"}],
+                    max_tokens=1,
+                )
+                result, color = "Connected ✓", "#4caf50"
+            except Exception as e:
+                result, color = f"Failed: {str(e)[:100]}", "#f44336"
+            if _win and _win.winfo_exists():
+                _win.after(0, lambda: (
+                    ai_status_var.set(result),
+                    ai_status_lbl.config(fg=color),
+                ))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    tk.Button(
+        ai_test_frame, text="Test Connection", command=_run_ai_test,
+        bg=BTN_BG, fg=FG, activebackground="#444444", activeforeground=FG,
+        relief="flat", font=("Segoe UI", 9), padx=8, pady=3, cursor="hand2",
+    ).pack(side="left")
 
 
     # ── THEME SECTION ────────────────────────────────────────────────────────
@@ -457,6 +511,9 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
             "NOTION_PAGE_ID":  page_id_var.get().strip(),
             "NOTION_PAGE_NAME": page_name_var.get().strip(),
             "OVERLAY_THEME":   theme_var.get(),
+            "AI_ENABLED":      "true" if ai_var.get() else "false",
+            "OPENAI_API_KEY":  openai_key_var.get().strip(),
+            "OPENAI_MODEL":    openai_model_var.get().strip() or "gpt-4o-mini",
         }
         try:
             _write_env(env_path, updates)
@@ -467,6 +524,11 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
             return
 
         set_notion_enabled(notion_var.get())
+        set_ai_enabled(
+            ai_var.get(),
+            openai_key_var.get().strip(),
+            openai_model_var.get().strip() or "gpt-4o-mini",
+        )
         on_theme_change(theme_var.get())
         save_status_var.set("Saved ✓")
         if _win and _win.winfo_exists():

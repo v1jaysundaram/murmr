@@ -11,7 +11,9 @@ from PIL import Image, ImageDraw, ImageFont
 from pynput.keyboard import Controller as KeyboardController, Key
 
 import hotkeys
+import config
 from config import DOCK_X, DOCK_Y, OVERLAY_THEME, WHISPER_MODEL
+from ai_cleaner import clean_transcription
 from dock import Dock
 from notion_writer import append_to_notion
 from recorder import get_rms, start_recording, stop_recording
@@ -39,6 +41,11 @@ _keyboard      = KeyboardController()
 
 # Notion toggle
 _notion_enabled = False
+
+# AI cleanup toggle — key/model kept as live globals so settings changes take effect immediately
+_ai_enabled    = config.AI_ENABLED
+_openai_api_key = config.OPENAI_API_KEY
+_openai_model  = config.OPENAI_MODEL
 
 # Tray
 _tray_icon = None
@@ -255,6 +262,11 @@ def _transcription_worker():
 
     if text:
         logging.info("Transcribed: %s", text)
+        logging.info("AI state: enabled=%s  key_present=%s  model=%s",
+                     _ai_enabled, bool(_openai_api_key), _openai_model)
+        if _ai_enabled and _openai_api_key:
+            _ui(lambda: _dock.update_status("cleaning") if _dock else None)
+            text = clean_transcription(text, _openai_api_key, _openai_model)
         do_paste(text)
         if _notion_enabled:
             def _notion_worker():
@@ -343,6 +355,21 @@ def _set_notion_enabled(value: bool):
         _tray_icon.update_menu()   # keep tray checkbox in sync
 
 
+def _set_ai_enabled(value: bool, api_key: str = None, model: str = None):
+    global _ai_enabled, _openai_api_key, _openai_model
+    _ai_enabled = value
+    if api_key is not None:
+        _openai_api_key = api_key
+    if model is not None:
+        _openai_model = model or "gpt-4o-mini"
+    logging.info("AI cleanup %s.  key_present=%s  model=%s",
+                 "enabled" if value else "disabled", bool(_openai_api_key), _openai_model)
+    if _dock:
+        _ui(lambda: _dock.update_ai_button(value))
+    if _tray_icon:
+        _tray_icon.update_menu()
+
+
 def _toggle_notion_from_tray(icon, item):
     _set_notion_enabled(not _notion_enabled)
 
@@ -367,6 +394,8 @@ def _open_settings():
         get_notion_enabled=lambda: _notion_enabled,
         set_notion_enabled=_set_notion_enabled,
         on_theme_change=_on_theme_change,
+        get_ai_enabled=lambda: _ai_enabled,
+        set_ai_enabled=_set_ai_enabled,
         env_path=_ENV_PATH,
     )
 
@@ -408,10 +437,12 @@ def main():
     _dock = Dock(
         tk_root=_tk_root,
         on_notion_toggle=lambda: _set_notion_enabled(not _notion_enabled),
+        on_ai_toggle=lambda: _set_ai_enabled(not _ai_enabled),
         on_open_settings=_open_settings,
         env_path=_ENV_PATH,
         initial_x=dock_x,
         initial_y=dock_y,
+        initial_ai=config.AI_ENABLED,
     )
 
     hotkeys.start_listener(
@@ -431,9 +462,8 @@ def main():
         ),
         pystray.MenuItem(
             "AI cleanup",
-            None,
-            checked=lambda item: False,
-            enabled=False,
+            lambda icon, item: _set_ai_enabled(not _ai_enabled),
+            checked=lambda item: _ai_enabled,
         ),
         pystray.MenuItem("Settings", lambda icon, item: _ui(_open_settings)),
         pystray.Menu.SEPARATOR,

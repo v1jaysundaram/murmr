@@ -1,5 +1,56 @@
 # Changelog
 
+## v0.1.3 — 2026-04-08 — AI Cleanup (Phase 4)
+
+### What's new
+
+**AI-powered transcription cleanup**
+- New `ai_cleaner.py` module — runs murmr's raw transcription output through OpenAI before paste
+- Removes filler words: um, uh, ah, like (filler use), you know, basically, etc.
+- Handles self-corrections: "encoder, sorry, decoder" → "decoder"; "Friday no Tuesdays" → "Tuesdays"
+- Fixes subtle grammar errors and capitalisation artifacts
+- Preserves the speaker's natural voice — no paraphrasing or summarising
+- Falls back to raw transcription silently if the API call fails (transcription is never lost)
+- Uses `gpt-4o-mini` by default — ~1–2s latency, low cost
+
+**Dock [AI] button — now a live toggle**
+- Click to enable/disable AI cleanup per session (same UX as [N] for Notion)
+- Soft green = AI on, dim = AI off
+- State syncs with Settings and tray menu
+
+**Settings → AI section — now fully functional**
+- "Enable AI cleanup" checkbox
+- API Key field (masked)
+- Model field (default `gpt-4o-mini`, editable)
+- "Test Connection" button — validates the key with a live API ping
+- Save writes `AI_ENABLED`, `OPENAI_API_KEY`, `OPENAI_MODEL` to `.env`
+
+**Status dot — new "cleaning" state**
+- Dot stays amber while AI cleanup is in progress (same colour as transcribing)
+
+**Notion logging**
+- Logs the cleaned text only (not raw output)
+
+**Improved logging**
+- `AI state: enabled=... key_present=... model=...` logged on every transcription
+- `AI cleaned: "raw" → "cleaned"` logged on every successful cleanup
+- API key changes via Settings take effect immediately — no restart needed
+
+### Bug fix
+- `config.OPENAI_API_KEY` was read once at startup — if you saved a key via Settings mid-session, AI cleanup silently skipped. Fixed: key/model are now live globals in `main.py`, updated immediately on Settings save.
+
+### New file
+- `murmr/ai_cleaner.py` — self-contained OpenAI cleanup module
+
+### New `.env` keys
+| Key | Default | What it controls |
+|---|---|---|
+| `AI_ENABLED` | `false` | Whether AI cleanup runs after transcription |
+| `OPENAI_API_KEY` | _(empty)_ | Your OpenAI secret key |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model to use for cleanup |
+
+---
+
 ## v0.1.2 — 2026-04-08 — UI/UX Overhaul
 
 ### What's new

@@ -23,7 +23,8 @@ DOCK_BTN_HOVER = "#2a2a2a"
 
 NOTION_ON_FG  = "#4fc3f7"
 NOTION_OFF_FG = "#444444"
-AI_FG         = "#333333"  # always dim — placeholder
+AI_ON_FG      = "#a5d6a7"   # soft green when AI cleanup is active
+AI_OFF_FG     = "#444444"
 
 STATUS_IDLE   = "#3a3a3a"
 STATUS_REC    = "#4caf50"   # green for recording
@@ -67,14 +68,16 @@ def _pill_pts(w, h):
 
 
 class Dock:
-    def __init__(self, tk_root, on_notion_toggle, on_open_settings, env_path,
-                 initial_x=None, initial_y=None):
-        self._root        = tk_root
-        self._on_toggle   = on_notion_toggle
-        self._on_settings = on_open_settings
-        self._env_path    = env_path
-        self._notion_on   = False
-        self._collapsed   = False
+    def __init__(self, tk_root, on_notion_toggle, on_ai_toggle, on_open_settings,
+                 env_path, initial_x=None, initial_y=None, initial_ai=False):
+        self._root          = tk_root
+        self._on_toggle     = on_notion_toggle
+        self._on_ai_toggle  = on_ai_toggle
+        self._on_settings   = on_open_settings
+        self._env_path      = env_path
+        self._notion_on     = False
+        self._ai_on         = initial_ai
+        self._collapsed     = False
         self._drag_x = self._drag_y = 0
 
         # ── Window ──────────────────────────────────────────────────────────
@@ -125,8 +128,9 @@ class Dock:
         )
         self._label.place(x=LABEL_X, y=0, width=LABEL_W, height=DOCK_H)
 
-        # [AI] AI placeholder
-        self._ai_btn = self._make_btn("AI", AI_FG, None, cursor="arrow")
+        # [AI] AI cleanup toggle
+        _initial_ai_fg = AI_ON_FG if self._ai_on else AI_OFF_FG
+        self._ai_btn = self._make_btn("AI", _initial_ai_fg, self._on_ai_click)
         self._ai_btn.place(x=BTN_L_X, y=0, width=26, height=DOCK_H)
 
         # [N] Notion toggle
@@ -234,14 +238,19 @@ class Dock:
         if self._on_toggle:
             self._on_toggle()
 
+    def _on_ai_click(self):
+        if self._on_ai_toggle:
+            self._on_ai_toggle()
+
     # ── Public API ──────────────────────────────────────────────────────────
 
     def update_status(self, state: str):
-        """state: 'idle' | 'recording' | 'transcribing'"""
+        """state: 'idle' | 'recording' | 'transcribing' | 'cleaning'"""
         color = {
             "idle":         STATUS_IDLE,
             "recording":    STATUS_REC,
             "transcribing": STATUS_BUSY,
+            "cleaning":     STATUS_BUSY,
         }.get(state, STATUS_IDLE)
         self._canvas.itemconfig(self._dot, fill=color)
         self._win.lift()
@@ -249,3 +258,7 @@ class Dock:
     def update_notion_button(self, enabled: bool):
         self._notion_on = enabled
         self._notion_btn.config(fg=NOTION_ON_FG if enabled else NOTION_OFF_FG)
+
+    def update_ai_button(self, enabled: bool):
+        self._ai_on = enabled
+        self._ai_btn.config(fg=AI_ON_FG if enabled else AI_OFF_FG)

@@ -59,6 +59,7 @@ murmr/                    ← the actual app code lives here
 ├── settings_window.py    ← settings GUI + .env read/write helpers
 ├── main.py               ← tray icon, overlay, orchestration, wires everything
 ├── notion_writer.py      ← sends transcriptions to Notion
+├── ai_cleaner.py         ← OpenAI cleanup pass (fillers, grammar, self-corrections)
 └── murmr.log             ← runtime log (transcriptions, errors, model output)
 launch_murmr.bat          ← double-click to start (no terminal window)
 ```
@@ -76,8 +77,8 @@ End-to-end flow working: press hotkey → record → transcribe → paste.
 ### Phase 3 — UI/UX overhaul ✓
 Floating dock, settings window, push-to-talk hotkey, waveform themes, tray sync.
 
-### Phase 4 — AI cleanup (planned)
-After transcription, optionally run text through an LLM to clean up before pasting.
+### Phase 4 — AI cleanup ✓
+After transcription, runs text through OpenAI (`gpt-4o-mini`) to remove fillers, fix grammar, and handle self-corrections before pasting. Toggle via dock `[AI]` button or Settings.
 
 ---
 
@@ -92,6 +93,9 @@ After transcription, optionally run text through an LLM to clean up before pasti
 | `NOTION_PAGE_NAME` | _(empty)_ | Human-readable page name (set automatically via Browse). |
 | `OVERLAY_THEME` | `dark` | Waveform overlay theme: `dark` or `light`. |
 | `DOCK_X` / `DOCK_Y` | _(screen edge)_ | Last saved dock position (set automatically by dragging). |
+| `AI_ENABLED` | `false` | Whether AI cleanup runs after transcription. |
+| `OPENAI_API_KEY` | _(empty)_ | Your OpenAI secret key. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model used for cleanup. |
 
 ---
 

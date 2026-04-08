@@ -14,6 +14,11 @@ WHISPER_LANGUAGE = os.getenv("WHISPER_LANGUAGE", "en")  # set to None for auto-d
 NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
 NOTION_PAGE_ID = os.getenv("NOTION_PAGE_ID", "")
 
+# --- AI Cleanup (Phase 4) ---
+AI_ENABLED    = os.getenv("AI_ENABLED", "false").lower() == "true"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL  = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
 # --- UI ---
 OVERLAY_THEME = os.getenv("OVERLAY_THEME", "dark")
 DOCK_X = os.getenv("DOCK_X", "")
