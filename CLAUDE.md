@@ -47,7 +47,7 @@ A local-first voice dictation app for Windows. Lives in the system tray and a fl
 ## File map
 
 ```
-murmr/                    ← the actual app code lives here
+src/                      ← the actual app code lives here
 ├── .env                  ← your personal settings + secrets (never share this)
 ├── .env.example          ← a safe template showing what .env should look like
 ├── requirements.txt      ← list of libraries to install
@@ -61,7 +61,7 @@ murmr/                    ← the actual app code lives here
 ├── notion_writer.py      ← sends transcriptions to Notion
 ├── ai_cleaner.py         ← AI cleanup pass (fillers, grammar, self-corrections) — supports OpenAI and Ollama
 └── murmr.log             ← runtime log (transcriptions, errors, model output)
-launch_murmr.bat          ← double-click to start (no terminal window)
+murmr.bat                 ← double-click to start (no terminal window)
 ```
 
 ---
@@ -116,15 +116,15 @@ Settings → AI now offers a backend selector: **OpenAI** (cloud) or **Ollama (l
 
 ## How to run
 
-- **Start:** Double-click `launch_murmr.bat` — app starts silently; dock appears in top-right corner
+- **Start:** Double-click `murmr.bat` — app starts silently; dock appears in top-right corner
 - **Hands-free:** Press `Ctrl+Win` to start → speak → press `Ctrl+Win` again to stop and paste
 - **Push-to-talk:** Hold `Ctrl+Alt+Win` while speaking → release Win key to transcribe and paste
 - **Notion toggle:** Click `[N]` on the dock, or right-click tray → Notion logging
 - **Settings:** Click `[⚙]` on the dock, or right-click tray → Settings
 - **Collapse dock:** Click `[–]` on the dock to shrink it; `[+]` to expand
 - **Quit:** Right-click the tray icon → Quit
-- **Logs:** Check `murmr/murmr.log` to see what the app is doing
-- **Auto-start on login:** Press `Win+R` → type `shell:startup` → drop a shortcut to `launch_murmr.bat`
+- **Logs:** Check `src/murmr.log` to see what the app is doing
+- **Auto-start on login:** Press `Win+R` → type `shell:startup` → drop a shortcut to `murmr.bat`
 
 ---
 

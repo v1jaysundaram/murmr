@@ -4,7 +4,7 @@ dock.py — Floating mini-dock for murmr.
 A small always-on-top pill window with true rounded corners (chroma-key trick).
 Draggable. Position persists to .env. Supports collapse/expand.
 
-Full layout:   ● murmr  [L] [N] [⚙] [–]
+Full layout:   ● murmr  [AI] [N] [⚙] [–] [✕]
 Collapsed:     ● [+]
 """
 
@@ -34,7 +34,7 @@ STATUS_BUSY   = "#ff9800"   # amber for transcribing
 # Dimensions
 # ---------------------------------------------------------------------------
 DOCK_H       = 34
-DOCK_W_FULL  = 222
+DOCK_W_FULL  = 250
 DOCK_W_MINI  = 58
 
 DOT_R    = 4   # status dot radius
@@ -44,11 +44,12 @@ LABEL_X  = 26
 LABEL_W  = 68
 
 # Button x positions in full mode (each 26px wide)
-BTN_L_X  = LABEL_X + LABEL_W + 4    # 98
-BTN_N_X  = BTN_L_X + 28             # 126
-BTN_G_X  = BTN_N_X + 28             # 154
+BTN_L_X   = LABEL_X + LABEL_W + 4   # 98
+BTN_N_X   = BTN_L_X + 28            # 126
+BTN_G_X   = BTN_N_X + 28            # 154
 BTN_MIN_X = BTN_G_X + 28            # 182
-# Total: 182 + 26 + 14 padding = 222 ✓
+BTN_X_X   = BTN_MIN_X + 28          # 210
+# Total: 210 + 26 + 14 padding = 250 ✓
 
 # Mini mode expand button
 BTN_EXP_X = 26
@@ -69,7 +70,8 @@ def _pill_pts(w, h):
 
 class Dock:
     def __init__(self, tk_root, on_notion_toggle, on_ai_toggle, on_open_settings,
-                 env_path, initial_x=None, initial_y=None, initial_ai=False):
+                 env_path, initial_x=None, initial_y=None, initial_ai=False,
+                 on_quit=None):
         self._root          = tk_root
         self._on_toggle     = on_notion_toggle
         self._on_ai_toggle  = on_ai_toggle
@@ -79,6 +81,7 @@ class Dock:
         self._ai_on         = initial_ai
         self._collapsed     = False
         self._drag_x = self._drag_y = 0
+        self._on_quit       = on_quit
 
         # ── Window ──────────────────────────────────────────────────────────
         self._win = tk.Toplevel(tk_root)
@@ -146,6 +149,11 @@ class Dock:
         self._min_btn = self._make_btn("–", DOCK_FG_DIM, self._collapse)
         self._min_btn.place(x=BTN_MIN_X, y=0, width=26, height=DOCK_H)
 
+        # [✕] Close — quits the app
+        self._close_btn = self._make_btn("✕", DOCK_FG_DIM,
+                                         lambda: self._on_quit() if self._on_quit else None)
+        self._close_btn.place(x=BTN_X_X, y=0, width=26, height=DOCK_H)
+
         # [+] Expand (hidden in full mode)
         self._exp_btn = self._make_btn("+", DOCK_FG_DIM, self._expand)
         # placed only in collapsed mode
@@ -185,6 +193,7 @@ class Dock:
         self._notion_btn.place_forget()
         self._gear_btn.place_forget()
         self._min_btn.place_forget()
+        self._close_btn.place_forget()
 
         # Show expand button
         self._exp_btn.place(x=BTN_EXP_X, y=0, width=26, height=DOCK_H)
@@ -211,6 +220,7 @@ class Dock:
         self._notion_btn.place(x=BTN_N_X, y=0, width=26, height=DOCK_H)
         self._gear_btn.place(x=BTN_G_X, y=0, width=26, height=DOCK_H)
         self._min_btn.place(x=BTN_MIN_X, y=0, width=26, height=DOCK_H)
+        self._close_btn.place(x=BTN_X_X, y=0, width=26, height=DOCK_H)
 
     # ── Drag ────────────────────────────────────────────────────────────────
 

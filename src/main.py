@@ -243,6 +243,25 @@ def do_paste(text):
 
 
 # ---------------------------------------------------------------------------
+# UI helpers
+# ---------------------------------------------------------------------------
+
+def _update_dock_status(state: str):
+    _ui(lambda: _dock.update_status(state) if _dock else None)
+
+
+def _begin_recording():
+    """Shared setup for both toggle-mode and push-to-talk recording start."""
+    global _is_recording
+    _is_recording = True
+    if _tray_icon:
+        _tray_icon.icon = _make_tray_icon(recording=True)
+    _ui(_show_overlay)
+    _update_dock_status("recording")
+    start_recording()
+
+
+# ---------------------------------------------------------------------------
 # Recording → transcription → paste flow
 # ---------------------------------------------------------------------------
 
@@ -252,7 +271,7 @@ def _transcription_worker():
     audio = stop_recording()
     logging.info("Transcribing...")
 
-    _ui(lambda: _dock.update_status("transcribing") if _dock else None)
+    _update_dock_status("transcribing")
 
     def _dim_bars():
         if _bar_canvas:
@@ -268,7 +287,7 @@ def _transcription_worker():
         logging.info("AI state: enabled=%s  backend=%s  key_present=%s  model=%s",
                      _ai_enabled, _ai_backend, bool(_openai_api_key), _openai_model)
         if _ai_enabled:
-            _ui(lambda: _dock.update_status("cleaning") if _dock else None)
+            _update_dock_status("cleaning")
             if _ai_backend == "ollama":
                 from ai_cleaner import clean_transcription_ollama
                 text = clean_transcription_ollama(text, _ollama_model, _ollama_endpoint)
@@ -289,7 +308,7 @@ def _transcription_worker():
 
     _is_recording = False
     _ui(_hide_overlay)
-    _ui(lambda: _dock.update_status("idle") if _dock else None)
+    _update_dock_status("idle")
     if _tray_icon:
         _tray_icon.icon = _make_tray_icon(recording=False)
 
@@ -306,12 +325,7 @@ def _toggle_recording():
         return
 
     if not _is_recording:
-        _is_recording = True
-        if _tray_icon:
-            _tray_icon.icon = _make_tray_icon(recording=True)
-        _ui(_show_overlay)
-        _ui(lambda: _dock.update_status("recording") if _dock else None)
-        start_recording()
+        _begin_recording()
         logging.info("Recording started.")
     else:
         logging.info("Recording stopped.")
@@ -323,8 +337,6 @@ def _toggle_recording():
 # ---------------------------------------------------------------------------
 
 def _ptt_start():
-    global _is_recording
-
     if _transcriber is None:
         logging.warning("PTT pressed but model is still loading — ignoring.")
         return
@@ -332,12 +344,7 @@ def _ptt_start():
     if _is_recording:
         return  # Don't interrupt an active toggle-mode session
 
-    _is_recording = True
-    if _tray_icon:
-        _tray_icon.icon = _make_tray_icon(recording=True)
-    _ui(_show_overlay)
-    _ui(lambda: _dock.update_status("recording") if _dock else None)
-    start_recording()
+    _begin_recording()
     logging.info("PTT recording started.")
 
 
@@ -460,6 +467,7 @@ def main():
         initial_x=dock_x,
         initial_y=dock_y,
         initial_ai=config.AI_ENABLED,
+        on_quit=lambda: _quit(_tray_icon, None),
     )
 
     hotkeys.start_listener(

@@ -1,6 +1,6 @@
 .venv/
-murmr/.env
+src/.env
 __pycache__/
 *.pyc
-murmr/*.log
+src/*.log
 NEXTSTEPS.md

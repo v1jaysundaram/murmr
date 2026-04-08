@@ -13,37 +13,64 @@ transcription is never lost due to an API failure.
 
 import logging
 
+import openai
+
+# ---------------------------------------------------------------------------
+# Prompt + inference settings
+# ---------------------------------------------------------------------------
+
 SYSTEM_PROMPT = """\
-You are a transcription cleanup assistant for a voice dictation app.
+You are a transcription cleanup assistant. Clean raw speech-to-text output:
 
-Your job is to clean up raw speech-to-text output. Follow these rules strictly:
+1. REMOVE filler words: um, uh, ah, er, hmm, like, you know, basically, \
+literally, right, kind of, sort of (when used as fillers with no meaning).
 
-1. REMOVE filler words and sounds: um, uh, ah, er, hmm, like (when used as filler), \
-you know, basically, literally (when used as filler), right (when used as filler), \
-so (when used only as a sentence opener with no meaning), kind of, sort of.
+2. HANDLE self-corrections: keep only the final intended version. Remove \
+false starts and correction markers (sorry, wait, no, I mean, actually, \
+scratch that).
+   E.g. "Send it to Mark, sorry, John" → "Send it to John"
+   E.g. "Schedule it for Monday, wait, Tuesday" → "Schedule it for Tuesday"
 
-2. HANDLE self-corrections: when the speaker corrects themselves mid-sentence, \
-keep only the final intended version and drop the false start and the correction \
-marker (e.g. "sorry", "wait", "no", "I mean", "actually", "scratch that").
-   Examples:
-   - "Send it to Mark, sorry, John" → "Send it to John"
-   - "Let's meet on Monday, wait no, Tuesday" → "Let's meet on Tuesday"
-   - "I think we should, actually we need to cancel" → "We need to cancel"
-   - "Call the, um, the client" → "Call the client"
+3. FIX speech-to-text artifacts: run-on words, missing capitalization, \
+obvious mishears. Keep informal grammar intact — preserve the speaker's voice.
 
-3. FIX grammar errors that are artifacts of speech recognition — run-on words, \
-missing capitalization at the start, obvious mishears (e.g. "their" vs "there" \
-when context is clear). Do NOT fix intentional informal grammar (contractions, \
-casual phrasing) — preserve the speaker's voice.
+4. NEVER paraphrase, summarize, or change meaning.
 
-4. DO NOT paraphrase, summarize, or change the meaning. Keep the same words \
-where possible. Do not add information that wasn't in the original.
+5. Return cleaned text only. No explanation, no quotes."""
 
-5. Return ONLY the cleaned text. No explanations, no quotes around the output, \
-no commentary.
+MAX_TOKENS  = 500
+TEMPERATURE = 0.1
 
-If the input is already clean, return it unchanged."""
+# ---------------------------------------------------------------------------
+# Client cache — reused across calls to avoid per-call TCP setup overhead
+# ---------------------------------------------------------------------------
 
+_openai_client: openai.OpenAI | None = None
+_openai_client_key: str = ""
+
+_ollama_client: openai.OpenAI | None = None
+_ollama_client_endpoint: str = ""
+
+
+def _get_openai_client(api_key: str) -> openai.OpenAI:
+    global _openai_client, _openai_client_key
+    if _openai_client is None or _openai_client_key != api_key:
+        _openai_client     = openai.OpenAI(api_key=api_key)
+        _openai_client_key = api_key
+    return _openai_client
+
+
+def _get_ollama_client(endpoint: str) -> openai.OpenAI:
+    global _ollama_client, _ollama_client_endpoint
+    if _ollama_client is None or _ollama_client_endpoint != endpoint:
+        _ollama_client          = openai.OpenAI(api_key="ollama", base_url=endpoint)
+        _ollama_client_endpoint = endpoint
+    return _ollama_client
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
 
 def clean_transcription(text: str, api_key: str, model: str = "gpt-4o-mini") -> str:
     """
@@ -56,16 +83,15 @@ def clean_transcription(text: str, api_key: str, model: str = "gpt-4o-mini") -> 
         return text
 
     try:
-        import openai
-        client = openai.OpenAI(api_key=api_key)
+        client   = _get_openai_client(api_key)
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": text},
             ],
-            max_tokens=500,
-            temperature=0.1,
+            max_tokens=MAX_TOKENS,
+            temperature=TEMPERATURE,
         )
         cleaned = response.choices[0].message.content.strip()
         if cleaned:
@@ -91,16 +117,15 @@ def clean_transcription_ollama(text: str, model: str = "llama3.2:3b",
         return text
 
     try:
-        import openai
-        client = openai.OpenAI(api_key="ollama", base_url=endpoint)
+        client   = _get_ollama_client(endpoint)
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user",   "content": text},
             ],
-            max_tokens=500,
-            temperature=0.1,
+            max_tokens=MAX_TOKENS,
+            temperature=TEMPERATURE,
         )
         cleaned = response.choices[0].message.content.strip()
         if cleaned:

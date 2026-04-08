@@ -5,6 +5,21 @@ from notion_client import Client
 
 from config import NOTION_PAGE_ID, NOTION_TOKEN
 
+# ---------------------------------------------------------------------------
+# Client cache — reused across calls; recreated only if token changes
+# ---------------------------------------------------------------------------
+
+_notion_client: Client | None = None
+_notion_client_token: str = ""
+
+
+def _get_client(token: str) -> Client:
+    global _notion_client, _notion_client_token
+    if _notion_client is None or _notion_client_token != token:
+        _notion_client       = Client(auth=token)
+        _notion_client_token = token
+    return _notion_client
+
 
 def append_to_notion(text: str, token: str = None, page_id: str = None) -> None:
     """Append a timestamped dictation entry to the configured Notion page.
@@ -19,9 +34,9 @@ def append_to_notion(text: str, token: str = None, page_id: str = None) -> None:
         logging.warning("Notion not configured — set NOTION_TOKEN and NOTION_PAGE_ID in .env.")
         return
 
-    client = Client(auth=token)
+    client    = _get_client(token)
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    entry = f"{timestamp}  →  {text}"
+    entry     = f"{timestamp}  →  {text}"
 
     client.blocks.children.append(
         page_id,

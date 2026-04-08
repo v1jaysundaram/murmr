@@ -405,7 +405,7 @@ def open_settings(tk_root, get_notion_enabled, set_notion_enabled,
     ai_var = tk.BooleanVar(value=get_ai_enabled())
 
     tk.Checkbutton(
-        llm_frame, text="Enable AI cleanup  (removes fillers, fixes self-corrections)",
+        llm_frame, text="Enable AI cleanup",
         variable=ai_var, bg=SECTION_BG, fg=FG,
         selectcolor=BTN_BG, activebackground=SECTION_BG,
         activeforeground=FG, font=("Segoe UI", 9),
