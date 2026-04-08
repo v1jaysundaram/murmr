@@ -255,9 +255,10 @@ class Dock:
     # ── Public API ──────────────────────────────────────────────────────────
 
     def update_status(self, state: str):
-        """state: 'idle' | 'recording' | 'transcribing' | 'cleaning'"""
+        """state: 'idle' | 'loading' | 'recording' | 'transcribing' | 'cleaning'"""
         color = {
             "idle":         STATUS_IDLE,
+            "loading":      STATUS_BUSY,
             "recording":    STATUS_REC,
             "transcribing": STATUS_BUSY,
             "cleaning":     STATUS_BUSY,

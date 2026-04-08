@@ -3,6 +3,9 @@
 ## [1.0.0] — 2026-04-09
 ### Added
 - Parallel transcription — sentences transcribed in the background while you speak; only the final segment waits on stop. Noticeably faster for anything longer than ~5s.
+- Clipboard restore — previous clipboard contents are saved before pasting and restored immediately after.
+- Dock loading state — status dot turns amber while Whisper loads on startup, so you know when it's ready.
+- Log rotation — `murmr.log` capped at 512KB with 3 backups; no more unbounded growth.
 
 ---
 

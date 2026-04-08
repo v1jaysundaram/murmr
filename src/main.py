@@ -1,4 +1,5 @@
 import logging
+import logging.handlers
 import math
 import os
 import threading
@@ -24,12 +25,14 @@ from transcriber import Transcriber
 # Logging
 # ---------------------------------------------------------------------------
 _log_path = os.path.join(os.path.dirname(__file__), "murmr.log")
-logging.basicConfig(
-    filename=_log_path,
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)s  %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
+_log_handler = logging.handlers.RotatingFileHandler(
+    _log_path, maxBytes=512_000, backupCount=3, encoding="utf-8"
 )
+_log_handler.setFormatter(logging.Formatter(
+    "%(asctime)s  %(levelname)s  %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+))
+logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().addHandler(_log_handler)
 logging.getLogger("faster_whisper").setLevel(logging.DEBUG)
 
 # ---------------------------------------------------------------------------
@@ -239,12 +242,21 @@ def _ui(fn):
 # ---------------------------------------------------------------------------
 
 def do_paste(text):
+    try:
+        prev = pyperclip.paste()
+    except Exception:
+        prev = ""
     pyperclip.copy(text)
     time.sleep(0.15)
     _keyboard.press(Key.ctrl)
     _keyboard.press('v')
     _keyboard.release('v')
     _keyboard.release(Key.ctrl)
+    time.sleep(0.1)
+    try:
+        pyperclip.copy(prev)
+    except Exception:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -491,7 +503,9 @@ def main():
     def _load_model():
         global _transcriber
         logging.info("Loading Whisper model...")
+        _update_dock_status("loading")
         _transcriber = Transcriber()
+        _update_dock_status("idle")
         logging.info("Ready. Ctrl+Win to toggle hands-free  |  Hold Ctrl+Alt+Win for push-to-talk.")
 
     threading.Thread(target=_load_model, daemon=True).start()
