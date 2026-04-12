@@ -15,7 +15,7 @@
 
 ## The free, local Wispr Flow for Windows.
 
-Press a key, speak, paste — local voice dictation for Windows. No cloud, no subscription. Everything runs on your machine: transcription, AI cleanup, and optional Notion logging.
+Press a key, speak, paste - local voice dictation for Windows. No cloud, no subscription. Everything runs on your machine: transcription, AI cleanup, and optional Notion logging.
 
 ---
 
@@ -26,21 +26,21 @@ Press a key, speak, paste — local voice dictation for Windows. No cloud, no su
 </p>
 
 <p align="center">
-  <a href="YOUR_YOUTUBE_VIDEO_URL">▶️ Watch the full build on YouTube</a>
+  <a href="YOUR_YOUTUBE_VIDEO_URL">▶️ Watch the detailed walkthrough on YouTube</a>
 </p>
 
 ---
 
 ## Features
 
-- **Hotkey-driven** — `Ctrl+Win` to toggle hands-free recording; hold `Ctrl+Alt+Win` for push-to-talk
-- **100% local transcription** — powered by faster-whisper; your audio never leaves your machine, zero cost per use
-- **Parallel transcription** — silence detection splits speech into segments mid-recording; background threads transcribe each chunk as you speak, so only the final segment waits on stop
-- **AI cleanup** — optional pass to strip fillers, fix grammar, and handle self-corrections via OpenAI or a local Ollama model
-- **Floating dock** — draggable always-on-top pill showing live status; collapses to stay out of your way; position persists across restarts
-- **System tray** — quiet background presence with a right-click menu for quick toggles
-- **Notion logging** — optionally appends every transcription to a Notion page with a timestamp
-- **Settings GUI** — full configuration window; no `.env` editing required
+- **Hotkey-driven** - `Ctrl+Win` to toggle hands-free recording; hold `Ctrl+Alt+Win` for push-to-talk
+- **100% local transcription** - powered by faster-whisper; your audio never leaves your machine, zero cost per use
+- **Parallel transcription** - silence detection splits speech into segments mid-recording; background threads transcribe each chunk as you speak, so only the final segment waits on stop
+- **AI cleanup** - optional pass to strip fillers, fix grammar, and handle self-corrections via OpenAI or a local Ollama model
+- **Floating dock** - draggable always-on-top pill showing live status; collapses to stay out of your way; position persists across restarts
+- **System tray** - quiet background presence with a right-click menu for quick toggles
+- **Notion logging** - optionally appends every transcription to a Notion page with a timestamp
+- **Settings GUI** - full configuration window; no `.env` editing required
 
 ---
 
@@ -56,7 +56,7 @@ Hotkey press
                              └── notion_writer.py    (optional) append to Notion page
 ```
 
-On stop, only the final (unfinished) segment remains to be transcribed — everything before it is already done.
+On stop, only the final (unfinished) segment remains to be transcribed - everything before it is already done.
 
 ---
 
@@ -64,16 +64,17 @@ On stop, only the final (unfinished) segment remains to be transcribed — every
 
 | Tool | Purpose |
 |------|---------|
-| `faster-whisper` | Local speech-to-text inference — runs entirely on your machine |
-| `pynput` | Global hotkey listener — works across all Windows apps |
+| `faster-whisper` | Local speech-to-text inference - runs entirely on your machine |
+| `pynput` | Global hotkey listener - works across all Windows apps |
 | `sounddevice` | Mic capture + live RMS level for the animated waveform |
 | `pyperclip` | Clipboard copy/paste |
 | `pystray` | System tray icon and menu |
 | `tkinter` | Floating overlay, dock widget, and settings window |
-| `Pillow` | Draws the tray icon "M" lettermark in memory — no icon file needed |
+| `Pillow` | Draws the tray icon "M" lettermark in memory - no icon file needed |
 | `python-dotenv` | Loads settings from `.env` |
 | `numpy` | Raw audio buffer handling |
 | `openai` | AI cleanup via OpenAI API (optional) |
+| `ollama` | AI cleanup fully on-device via a local model (optional) |
 | `notion-client` | Appends transcriptions to a Notion page (optional) |
 
 ---
@@ -82,21 +83,20 @@ On stop, only the final (unfinished) segment remains to be transcribed — every
 
 ```
 murmr/
-├── murmr.bat               — launcher (double-click; no terminal window)
+├── murmr.bat               - launcher (double-click; no terminal window)
 ├── README.md
 └── src/
-    ├── main.py             — orchestration: tray, overlay, recording flow
-    ├── dock.py             — floating dock widget
-    ├── hotkeys.py          — global hotkey listener (pynput)
-    ├── recorder.py         — mic capture + silence-based segment splitting
-    ├── transcriber.py      — faster-whisper wrapper
-    ├── ai_cleaner.py       — AI cleanup (OpenAI + Ollama)
-    ├── notion_writer.py    — Notion page appender
-    ├── settings_window.py  — settings GUI + .env read/write
-    ├── config.py           — loads .env, exports all settings
-    ├── .env                — your secrets and preferences (never commit this)
-    ├── .env.example        — safe template
-    └── requirements.txt    — Python dependencies
+    ├── main.py             - orchestration: tray, overlay, recording flow
+    ├── dock.py             - floating dock widget
+    ├── hotkeys.py          - global hotkey listener (pynput)
+    ├── recorder.py         - mic capture + silence-based segment splitting
+    ├── transcriber.py      - faster-whisper wrapper
+    ├── ai_cleaner.py       - AI cleanup (OpenAI + Ollama)
+    ├── notion_writer.py    - Notion page appender
+    ├── settings_window.py  - settings GUI + .env read/write
+    ├── config.py           - loads .env, exports all settings
+    ├── .env                - your secrets and preferences (never commit this)
+    └── requirements.txt    - Python dependencies
 ```
 
 ---
@@ -120,17 +120,13 @@ pip install -r src/requirements.txt
 
 **Configure**
 
-```bash
-copy src\.env.example src\.env
-```
-
-Open `src\.env` and set at minimum:
+Create `src\.env` and set at minimum:
 
 ```
 WHISPER_MODEL=small   # tiny | base | small
 ```
 
-Everything else is optional — AI cleanup, Notion logging, and overlay theme are all configurable in the Settings window.
+Everything else is optional - AI cleanup, Notion logging, and overlay theme are all configurable in the Settings window.
 
 **Run**
 
@@ -139,11 +135,9 @@ cd src
 python main.py
 ```
 
-Or just double-click `murmr.bat` — no terminal window.
+Or just double-click `murmr.bat` - no terminal window.
 
 > **First run:** faster-whisper downloads model weights (~500 MB for `small`). This only happens once.
-
-**Auto-start on login:** `Win+R` → `shell:startup` → drop a shortcut to `murmr.bat`
 
 ---
 
@@ -154,17 +148,17 @@ Or just double-click `murmr.bat` — no terminal window.
 | Start recording | `Ctrl+Win` |
 | Stop and paste | `Ctrl+Win` again |
 | Push-to-talk | Hold `Ctrl+Alt+Win`, release to transcribe |
-| Toggle Notion logging | Click `[N]` on dock, or tray → Notion logging |
-| Toggle AI cleanup | Click `[AI]` on dock, or tray → AI cleanup |
-| Open settings | Click `[⚙]` on dock, or tray → Settings |
+| Toggle Notion logging | Click `[N]` on dock, or tray - Notion logging |
+| Toggle AI cleanup | Click `[AI]` on dock, or tray - AI cleanup |
+| Open settings | Click `[⚙]` on dock, or tray - Settings |
 | Collapse dock | Click `[–]` on dock |
-| Quit | Click `[✕]` on dock, or tray → Quit |
+| Quit | Click `[✕]` on dock, or tray - Quit |
 
 ---
 
 ## Why I Built This
 
-<!-- Add your personal motivation here -->
+Dictating is faster than typing, but the built-in voice-to-text in apps like Claude and Gemini is finicky and locked to one place. I wanted something that works in every app - a single hotkey, speak, and the text lands wherever my cursor is. The Notion logging came from wanting to capture fleeting thoughts by just speaking, with everything automatically saved to a database I can search later.
 
 ---
 
