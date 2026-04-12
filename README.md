@@ -13,7 +13,7 @@
 
 ---
 
-## The open-source Wispr Flow alternative for Windows.
+## The free, local alternative to Wispr Flow - no cloud, no subscription.
 
 murmr is a local voice dictation app for Windows. Press a key, speak, paste - no cloud, no subscription. Everything runs on your machine: transcription, AI cleanup, and optional Notion logging.
 
@@ -158,7 +158,7 @@ Or just double-click `murmr.bat` - no terminal window.
 
 ## Why I Built This
 
-Dictating is faster than typing, but the built-in voice-to-text in apps like Claude and Gemini is finicky and locked to one place. I wanted something that works in every app - a single hotkey, speak, and the text lands wherever my cursor is. The Notion logging came from wanting to capture thoughts as they come by just speaking, with everything automatically saved to a database I can search later. So I built murmr.
+I've been dictating more than typing - simply because it's faster. But apps like Wispr Flow send your audio to the cloud and sit behind a paywall. The built-in voice-to-text in apps like Claude and Gemini is finicky and locked to one place. I wanted something that works in every app, with nothing leaving my machine. The Notion logging came from wanting to capture thoughts as they come by just speaking, with everything automatically saved to a database I can search later.
 
 ---
 
