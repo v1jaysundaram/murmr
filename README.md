@@ -2,6 +2,8 @@
   <img src="assets/logo.png" alt="murmr Logo" width="120"/>
 </p>
 
+<h1 align="center">murmr</h1>
+
 <p align="center">
   <a href="https://www.youtube.com/@vijai_sundaram"><img src="https://img.shields.io/badge/YouTube-Subscribe-red?style=flat&logo=youtube" alt="YouTube"/></a>
   <a href="https://www.linkedin.com/in/vijay-sundaram/"><img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin" alt="LinkedIn"/></a>
