@@ -13,7 +13,7 @@
 
 ---
 
-## The free, local Wispr Flow for Windows.
+## The open-source Wispr Flow alternative for Windows.
 
 Press a key, speak, paste - local voice dictation for Windows. No cloud, no subscription. Everything runs on your machine: transcription, AI cleanup, and optional Notion logging.
 
@@ -148,9 +148,9 @@ Or just double-click `murmr.bat` - no terminal window.
 | Start recording | `Ctrl+Win` |
 | Stop and paste | `Ctrl+Win` again |
 | Push-to-talk | Hold `Ctrl+Alt+Win`, release to transcribe |
-| Toggle Notion logging | Click `[N]` on dock, or tray - Notion logging |
-| Toggle AI cleanup | Click `[AI]` on dock, or tray - AI cleanup |
-| Open settings | Click `[⚙]` on dock, or tray - Settings |
+| Toggle Notion logging | Click `[N]` on dock, or tray → Notion logging |
+| Toggle AI cleanup | Click `[AI]` on dock, or tray → AI cleanup |
+| Open settings | Click `[⚙]` on dock, or tray → Settings |
 | Collapse dock | Click `[–]` on dock |
 | Quit | Click `[✕]` on dock, or tray - Quit |
 
@@ -158,7 +158,7 @@ Or just double-click `murmr.bat` - no terminal window.
 
 ## Why I Built This
 
-Dictating is faster than typing, but the built-in voice-to-text in apps like Claude and Gemini is finicky and locked to one place. I wanted something that works in every app - a single hotkey, speak, and the text lands wherever my cursor is. The Notion logging came from wanting to capture fleeting thoughts by just speaking, with everything automatically saved to a database I can search later.
+Dictating is faster than typing, but the built-in voice-to-text in apps like Claude and Gemini is finicky and locked to one place. I wanted something that works in every app - a single hotkey, speak, and the text lands wherever my cursor is. The Notion logging came from wanting to capture thoughts as they come by just speaking, with everything automatically saved to a database I can search later.
 
 ---
 
@@ -170,6 +170,11 @@ MIT © Vijay Sundaram Mohana
 
 ## Connect
 
-<p align="center">
-  <a href="https://www.youtube.com/@vijai_sundaram">YouTube</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/vijay-sundaram/">LinkedIn</a> &nbsp;·&nbsp; <a href="https://x.com/VijaySundaram_">X</a>
+If you found this series helpful, a ⭐ on the repo goes a long way.
+
+<p align="left">
+  <a href="https://www.youtube.com/@vijai_sundaram">YouTube</a> &nbsp;·&nbsp;
+  <a href="https://www.linkedin.com/in/vijay-sundaram/">LinkedIn</a> &nbsp;·&nbsp;
+  <a href="https://x.com/VijaySundaram_">X</a>
 </p>
+
