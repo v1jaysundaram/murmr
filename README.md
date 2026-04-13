@@ -33,6 +33,12 @@ murmr is a local voice dictation app for Windows. Press a key, speak, paste - no
 
 ---
 
+## Why I Built This
+
+I've been dictating more than typing - simply because it's faster. But apps like Wispr Flow send your audio to the cloud and sit behind a paywall. The built-in voice-to-text in apps like Claude and Gemini is finicky and locked to one place. I wanted something that works in every app, with nothing leaving my machine. The Notion logging came from wanting to capture thoughts as they come by just speaking, with everything automatically saved to a database I can search later.
+
+---
+
 ## Features
 
 - **Hotkey-driven** - `Ctrl+Win` to toggle hands-free recording; hold `Ctrl+Alt+Win` for push-to-talk
@@ -155,12 +161,6 @@ Or just double-click `murmr.bat` - no terminal window.
 | Open settings | Click `[⚙]` on dock, or tray → Settings |
 | Collapse dock | Click `[–]` on dock |
 | Quit | Click `[✕]` on dock, or tray - Quit |
-
----
-
-## Why I Built This
-
-I've been dictating more than typing - simply because it's faster. But apps like Wispr Flow send your audio to the cloud and sit behind a paywall. The built-in voice-to-text in apps like Claude and Gemini is finicky and locked to one place. I wanted something that works in every app, with nothing leaving my machine. The Notion logging came from wanting to capture thoughts as they come by just speaking, with everything automatically saved to a database I can search later.
 
 ---
 
