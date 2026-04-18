@@ -27,7 +27,7 @@ murmr is a local voice dictation app for Windows. Press a key, speak, paste - no
   <img src="assets/demo.gif" alt="Demo" width="700"/>
 </p>
 
-<p align="center">
+<p align="left">
   <a href="https://youtu.be/wM8OBZ-biBg">▶️ Watch the detailed walkthrough on YouTube</a>
 </p>
 
